@@ -53,6 +53,7 @@ class String { // vc: no space before class
   // Return the capacity of the queue.
   std::size_t capacity() const;  // vc: return value is size_t, return const !!!!
                                  // vc: OMG, if simple getter it use capcity_xx_xx type lower level all
+                                 // vc: unsigned int 
   static bool RefCountIsOne(const Tensor& tensor); // vc: static can appear after constructor
 
   // Create a DeviceMemoryBase from a Tensor. The Tensor can be an XlaTensor, in
@@ -114,8 +115,9 @@ class String { // vc: no space before class
 inline bool WaitForNotificationWithTimeout(Notification* n,
                                            int64 timeout_in_us) {
   return n->WaitForNotificationWithTimeout(timeout_in_us);
-} // vc: when to use inline keyword???
-
+} // vc: Do not use inline to make things faster. rather use it when you want to define the function in a header
+  //     More exactly only hwne the function's definition can show up in multiple translation units
+  //     If definition of function is in cc file, never use it
 
 //auto status = google::protobuf::util::MessageToJsonString(proto, result); // vc: mystery, can't find it
 

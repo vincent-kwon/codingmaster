@@ -16,6 +16,19 @@ limitations under the License.
 #ifndef CODINGMASTER_PLATFORM_MACROS_H_
 #define CODINGMASTER_PLATFORM_MACROS_H_
 
+#if defined(__clang__) && (!defined(SWIG))
+#define THREAD_ANNOTATION_ATTRIBUTE__(x)   __attribute__((x))
+#else
+#define THREAD_ANNOTATION_ATTRIBUTE__(x)   // no-op
+#endif
+
+// Document if a shared variable/field needs to be protected by a mutex.
+// GUARDED_BY allows the user to specify a particular mutex that should be
+// held when accessing the annotated variable.  GUARDED_VAR indicates that
+// a shared variable is guarded by some unspecified mutex, for use in rare
+// cases where a valid mutex expression cannot be specified.
+#define GUARDED_BY(x) THREAD_ANNOTATION_ATTRIBUTE__(guarded_by(x))
+ 
 // CHECK dies with a fatal error if condition is not true.  It is *not*
 // controlled by NDEBUG, so the check will be executed regardless of
 // compilation mode.  Therefore, it is safe to do things like:
@@ -34,17 +47,23 @@ limitations under the License.
 // don't recognize `__builtin_expect` as a builtin, and fail compilation.
 #if (!defined(__NVCC__)) && \
     (TF_HAS_BUILTIN(__builtin_expect) || (defined(__GNUC__) && __GNUC__ >= 3))
-#define TF_PREDICT_FALSE(x) (__builtin_expect(x, 0))
+#define TF_PREDICT_FALSE(x) (__builtin_expect(x, 0)) // vc: expect to be false to hint compiler
 #define TF_PREDICT_TRUE(x) (__builtin_expect(!!(x), 1))
 #else
 #define TF_PREDICT_FALSE(x) (x)
 #define TF_PREDICT_TRUE(x) (x)
 #endif
 
-// The TF_ARRAYSIZE(arr) macro returns the # of elements in an array arr.
 //
 // The expression TF_ARRAYSIZE(a) is a compile-time constant of type
 // size_t.
+// vc: 27 byte array
+// 27 / 6 = 4 => first line
+// / 
+// static_cast<size_t>(!(27 % 6)) = > 3 is retured and negate 0xFF FF FF FC 
+// A 10, B 11, C 12, D 13, E 14, F 15
+// when it can have extra? if aligned array
+// 
 #define TF_ARRAYSIZE(a)         \
   ((sizeof(a) / sizeof(*(a))) / \
    static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
@@ -54,5 +73,11 @@ limitations under the License.
 #define CM_DISALLOW_COPY_AND_ASSIGN(TypeName) \
   TypeName(const TypeName&) = delete;         \
   void operator=(const TypeName&) = delete
+
+#define N_ALIGNED_MALLOC(typeName,size,n) \
+  	void* tempAddress = malloc((size) + ((n)-1)); \
+  	static_case<typeName>(tempAddress & (~((n)-1)));
+
+#define EXPORT_API __attribute__(visibility("default")) // vc: -fvisibility=hidden
 
 #endif  // CODINGMASTER_PLATFORM_MACROS_H_
